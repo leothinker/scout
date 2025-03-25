@@ -1,0 +1,2 @@
+# scout
+SCOUT Boardgame
