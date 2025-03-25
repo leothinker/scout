@@ -1,2 +1,3 @@
-# scout
+# SCOUT Open-source
+
 SCOUT Boardgame
