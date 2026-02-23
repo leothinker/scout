@@ -163,7 +163,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(roomId);
     if (!room || room.phase !== 'PLAYING') return;
     const player = room.players[room.currentTurn];
-    if (player.id !== socket.id) return;
+    if (!player || player.id !== socket.id) return;
 
     // Validate adjacency
     const sortedIndices = [...cardIndices].sort((a, b) => a - b);
@@ -203,7 +203,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(roomId);
     if (!room || !room.activeSet || room.phase !== 'PLAYING') return;
     const player = room.players[room.currentTurn];
-    if (player.id !== socket.id) return;
+    if (!player || player.id !== socket.id) return;
     if (player.id === room.activeSet.ownerId) return;
 
     const activeCards = room.activeSet.cards;
@@ -243,7 +243,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(roomId);
     if (!room || room.phase !== 'PLAYING') return;
     const player = room.players[room.currentTurn];
-    if (player.id !== socket.id || player.hasUsedScoutAndShow) return;
+    if (!player || player.id !== socket.id || player.hasUsedScoutAndShow) return;
 
     player.performingScoutAndShow = true;
     player.hasPerformedScoutInScoutAndShow = false;

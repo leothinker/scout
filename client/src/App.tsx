@@ -124,7 +124,7 @@ const App: React.FC = () => {
   }
 
   const me = room.players.find(p => p.id === socket.id);
-  const isMyTurn = room.players[room.currentTurn].id === socket.id;
+  const isMyTurn = room.players[room.currentTurn]?.id === socket.id;
 
   if (room.phase === 'WAITING') {
     return (
@@ -174,13 +174,13 @@ const App: React.FC = () => {
       {/* Header Info */}
       <div className="flex justify-between items-center bg-neutral-800 p-4 rounded-xl border border-neutral-700">
          <div className="flex gap-4">
-           <div>Turn: <span className="text-blue-400 font-bold">{room.players[room.currentTurn].name}</span></div>
+           <div>Turn: <span className="text-blue-400 font-bold">{room.players[room.currentTurn]?.name}</span></div>
            <div>My Score: <span className="text-green-400 font-bold">{me?.score}</span></div>
            <div>Chips: <span className="text-yellow-400 font-bold">{me?.scoutChips}</span></div>
          </div>
          <div className="flex gap-1">
            {room.players.map(p => (
-             <div key={p.id} className={`px-2 py-1 text-xs rounded ${p.id === room.players[room.currentTurn].id ? 'bg-blue-600' : 'bg-neutral-700'}`}>
+             <div key={p.id} className={`px-2 py-1 text-xs rounded ${p.id === room.players[room.currentTurn]?.id ? 'bg-blue-600' : 'bg-neutral-700'}`}>
                {p.name} ({p.hand.length})
              </div>
            ))}
@@ -282,7 +282,7 @@ const App: React.FC = () => {
           <div className="bg-neutral-800 p-8 rounded-3xl border border-neutral-700 w-full max-w-sm">
             <h2 className="text-4xl font-black mb-8 text-center bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent italic">GAME OVER</h2>
             <div className="space-y-4 mb-8">
-              {room.players.sort((a,b) => (b.finalScore||0) - (a.finalScore||0)).map((p, i) => (
+              {[...room.players].sort((a,b) => (b.finalScore||0) - (a.finalScore||0)).map((p, i) => (
                 <div key={p.id} className="flex justify-between items-center p-4 bg-neutral-700/50 rounded-2xl">
                   <div className="flex gap-3 items-center">
                     <span className="text-neutral-500 font-black">#{i+1}</span>

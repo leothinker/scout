@@ -6,3 +6,7 @@ with Oink Games in any way.**
 **Buy The Board Game**
 
 The board game is great and this repository highly recommends [purchasing it](https://oinkgames.com/en/games/analog/scout/) for personal use.
+
+## LICENSE
+
+GPLv3
