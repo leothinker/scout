@@ -1,9 +1,9 @@
-import { createRootRoute, Outlet } from '@tanstack/react-router';
-import { TanStackRouterDevtools } from '@tanstack/router-devtools';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { Toaster } from 'sonner';
-import { ThemeProvider } from '@/components/theme-provider';
-import { GameProvider } from '@/contexts/GameContext';
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
+import { createRootRoute, Outlet } from "@tanstack/react-router"
+import { TanStackRouterDevtools } from "@tanstack/router-devtools"
+import { Toaster } from "sonner"
+import { ThemeProvider } from "@/components/theme-provider"
+import { GameProvider } from "@/contexts/GameContext"
 
 export const Route = createRootRoute({
   component: () => (
@@ -18,4 +18,4 @@ export const Route = createRootRoute({
       </GameProvider>
     </ThemeProvider>
   ),
-});
+})
