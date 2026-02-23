@@ -14,17 +14,16 @@ function setupSocketHandlers(io) {
     socket.on('identify', ({ playerId }) => {
       socketToPlayerId.set(socket.id, playerId);
       
-      // 检查玩家是否已经在某个房间中
       const roomId = playerIdToRoomId.get(playerId);
       if (roomId && rooms.has(roomId)) {
         socket.join(roomId);
         const room = rooms.get(roomId);
-        // 更新该玩家的最新 socket.id
         const player = room.players.find(p => p.id === playerId);
         if (player) {
-          player.socketId = socket.id; // 维护最新的 socketId 以便 io.to 发送消息
+          player.socketId = socket.id;
         }
-        socket.emit('roomUpdate', room);
+        // 使用 io.to(roomId) 广播，确保所有人知道该玩家“回来了”
+        io.to(roomId).emit('roomUpdate', room);
       }
     });
 
@@ -44,7 +43,6 @@ function setupSocketHandlers(io) {
       }
       const room = rooms.get(roomId);
       
-      // 检查玩家是否已经在房间里 (断线重连)
       let player = room.players.find(p => p.id === playerId);
       
       if (!player) {
@@ -52,7 +50,7 @@ function setupSocketHandlers(io) {
         if (room.players.length >= MAX_PLAYERS) return socket.emit('error', 'Room full');
         
         player = {
-          id: playerId, // 这里使用 playerId 而不是 socket.id
+          id: playerId,
           socketId: socket.id,
           name: playerName,
           hand: [],
@@ -64,8 +62,8 @@ function setupSocketHandlers(io) {
         };
         room.players.push(player);
       } else {
-        // 更新玩家的 socketId
         player.socketId = socket.id;
+        player.name = playerName; // 允许重连时更新名字
       }
 
       io.to(roomId).emit('roomUpdate', room);
@@ -73,9 +71,14 @@ function setupSocketHandlers(io) {
 
     socket.on('startGame', (roomId) => {
       const room = rooms.get(roomId);
-      if (room && room.players.length >= MIN_PLAYERS) {
+      const playerId = socketToPlayerId.get(socket.id);
+      
+      // 增加安全检查：只有第一个玩家（房主）可以开始游戏
+      if (room && room.players[0]?.id === playerId && room.players.length >= MIN_PLAYERS) {
         initGame(room);
         io.to(roomId).emit('roomUpdate', room);
+      } else if (room && room.players.length < MIN_PLAYERS) {
+        socket.emit('error', `Need at least ${MIN_PLAYERS} players`);
       }
     });
 
