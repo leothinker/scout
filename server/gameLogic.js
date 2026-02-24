@@ -22,10 +22,8 @@ function getSetInfo(cards) {
 
   const sortedValues = [...values].sort((a, b) => a - b);
   const isRun = sortedValues.every((v, i) => i === 0 || v === sortedValues[i - 1] + 1);
-  // In SCOUT, a run must be in order in the hand.
-  const isOrderedRun = values.every((v, i) => i === 0 || v === values[i-1] + 1 || v === values[i-1] - 1);
 
-  if (isRun && isOrderedRun) {
+  if (isRun) {
     return { type: 'run', value: Math.min(...values), length: cards.length };
   }
 

@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useEffect } from "react"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
+import { Appearance } from "@/components/Common/Appearance"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -53,7 +54,10 @@ function Lobby() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4 relative">
+      <div className="absolute top-4 right-4">
+        <Appearance />
+      </div>
       <Card className="w-full max-w-md shadow-2xl border-2 border-primary/10">
         <CardHeader>
           <CardTitle className="text-5xl font-black text-center tracking-tighter italic bg-gradient-to-br from-primary to-primary/40 bg-clip-text text-transparent">

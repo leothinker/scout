@@ -1,3 +1,4 @@
+import { Card } from "@/components/Common/Card"
 import { Button } from "@/components/ui/button"
 import type { Player } from "@/lib/types"
 
@@ -9,45 +10,47 @@ interface ReadyCheckProps {
 
 export function ReadyCheck({ me, onFlip, onReady }: ReadyCheckProps) {
   return (
-    <div className="min-h-screen text-foreground p-8 flex flex-col items-center justify-center gap-8">
-      <h2 className="text-3xl font-black italic uppercase tracking-tighter">
-        Choose your hand orientation
-      </h2>
-      <div className="flex gap-2 p-6 bg-secondary/50 rounded-2xl border-2 border-dashed border-primary/20">
+    <div className="min-h-screen text-foreground p-8 flex flex-col items-center justify-center gap-12">
+      <div className="text-center space-y-2">
+        <h2 className="text-4xl font-black italic uppercase tracking-tighter text-primary">
+          Check your hand
+        </h2>
+        <p className="text-muted-foreground font-bold text-sm uppercase tracking-widest">
+          Choose your orientation
+        </p>
+      </div>
+
+      <div className="flex gap-2 p-10 bg-secondary/30 backdrop-blur-md rounded-[2.5rem] border-4 border-dashed border-primary/20 shadow-2xl transition-transform hover:scale-105">
         {me?.hand.map((card, i) => (
-          <div
-            key={i}
-            className="w-16 h-24 bg-white text-black rounded-lg flex flex-col justify-between p-2 shadow-lg ring-1 ring-primary/5"
-          >
-            <div className="font-black text-xl leading-none">{card.top}</div>
-            <div className="text-[10px] text-muted-foreground self-end rotate-180 font-bold opacity-30">
-              {card.bottom}
-            </div>
-          </div>
+          <Card key={i} card={card} className="shadow-2xl" />
         ))}
       </div>
-      <div className="flex gap-4">
+
+      <div className="flex gap-6">
         <Button
           variant="outline"
           size="lg"
-          className="px-8 font-black uppercase tracking-widest"
+          className="px-12 py-8 text-lg rounded-2xl border-2 font-black uppercase tracking-widest hover:bg-primary/10 transition-all"
           onClick={onFlip}
           disabled={me?.ready}
         >
-          FLIP HAND
+          FLIP HAND 🔄
         </Button>
         <Button
           size="lg"
-          className="px-10 font-black uppercase tracking-widest shadow-[0_0_25px_rgba(var(--primary),0.3)]"
+          className="px-14 py-8 text-xl rounded-2xl font-black uppercase tracking-[0.2em] shadow-2xl hover:scale-105 transition-all"
           onClick={onReady}
           disabled={me?.ready}
         >
           I'M READY
         </Button>
       </div>
-      <div className="flex gap-2">
-        {/* Progress dots or indicators could go here */}
-      </div>
+
+      {me?.ready && (
+        <div className="text-primary font-black animate-bounce uppercase tracking-[0.3em] text-sm">
+          Waiting for other players...
+        </div>
+      )}
     </div>
   )
 }

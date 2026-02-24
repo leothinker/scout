@@ -12,6 +12,7 @@ function setupSocketHandlers(io) {
     
     // 玩家重新连接时的标识逻辑
     socket.on('identify', ({ playerId }) => {
+      console.log(`Identify: ${playerId} for socket ${socket.id}`);
       socketToPlayerId.set(socket.id, playerId);
       
       const roomId = playerIdToRoomId.get(playerId);
@@ -22,6 +23,7 @@ function setupSocketHandlers(io) {
         if (player) {
           player.socketId = socket.id;
         }
+        console.log(`Re-joined ${playerId} to ${roomId}`);
         // 使用 io.to(roomId) 广播，确保所有人知道该玩家“回来了”
         io.to(roomId).emit('roomUpdate', room);
       }
@@ -84,17 +86,23 @@ function setupSocketHandlers(io) {
 
     socket.on('show', ({ roomId, cardIndices }) => {
       const room = rooms.get(roomId);
-      if (!room || room.phase !== 'PLAYING') return;
+      if (!room) return socket.emit('error', 'Room not found');
+      if (room.phase !== 'PLAYING') return socket.emit('error', 'Game not in playing phase');
       
       const playerId = socketToPlayerId.get(socket.id);
       const player = room.players[room.currentTurn];
-      if (!player || player.id !== playerId) return;
+      
+      if (!player || player.id !== playerId) {
+        return socket.emit('error', "It's not your turn");
+      }
 
       const sortedIndices = [...cardIndices].sort((a, b) => a - b);
       const isAdjacent = sortedIndices.every((idx, i) => i === 0 || idx === sortedIndices[i - 1] + 1);
       if (!isAdjacent) return socket.emit('error', 'Cards must be adjacent');
 
       const cardsToPlay = cardIndices.map(idx => player.hand[idx]);
+      if (cardsToPlay.some(c => !c)) return socket.emit('error', 'Invalid card selection');
+
       if (isStronger(cardsToPlay, room.activeSet ? room.activeSet.cards : null)) {
         if (room.activeSet) {
           player.collectedCards.push(...room.activeSet.cards);
@@ -119,6 +127,8 @@ function setupSocketHandlers(io) {
           room.currentTurn = (room.currentTurn + 1) % room.players.length;
         }
         io.to(roomId).emit('roomUpdate', room);
+      } else {
+        socket.emit('error', 'Selected cards are not stronger than the active set');
       }
     });
 
