@@ -96,6 +96,8 @@ function setupSocketHandlers(io) {
         return socket.emit('error', "It's not your turn");
       }
 
+      if (cardIndices.length === 0) return socket.emit('error', 'No cards selected');
+
       const sortedIndices = [...cardIndices].sort((a, b) => a - b);
       const isAdjacent = sortedIndices.every((idx, i) => i === 0 || idx === sortedIndices[i - 1] + 1);
       if (!isAdjacent) return socket.emit('error', 'Cards must be adjacent');
@@ -141,34 +143,53 @@ function setupSocketHandlers(io) {
       if (!player || player.id !== playerId) return;
       if (player.id === room.activeSet.ownerId) return;
 
+      // Prevent scouting twice during Scout & Show
+      if (player.performingScoutAndShow && player.hasPerformedScoutInScoutAndShow) {
+        return socket.emit('error', 'Already scouted. Now you must SHOW or end turn.');
+      }
+
+      const is2Player = room.players.length === 2;
+      if (is2Player && player.scoutChips <= 0) {
+        return socket.emit('error', 'No scout chips left');
+      }
+
       const activeCards = room.activeSet.cards;
       if (cardIndex !== 0 && cardIndex !== activeCards.length - 1) return;
 
       const [scoutedCard] = activeCards.splice(cardIndex, 1);
+      const finalCard = { ...scoutedCard };
       if (flip) {
-        const temp = scoutedCard.top;
-        scoutedCard.top = scoutedCard.bottom;
-        scoutedCard.bottom = temp;
-        scoutedCard.isFlipped = !scoutedCard.isFlipped;
+        const temp = finalCard.top;
+        finalCard.top = finalCard.bottom;
+        finalCard.bottom = temp;
+        finalCard.isFlipped = !finalCard.isFlipped;
       }
 
-      player.hand.splice(insertIndex, 0, scoutedCard);
+      player.hand.splice(insertIndex, 0, finalCard);
       
-      const owner = room.players.find(p => p.id === room.activeSet.ownerId);
-      if (owner) owner.scoutChips++;
+      if (is2Player) {
+        player.scoutChips--;
+        // In 2-player, chip goes to center, not to owner.
+      } else {
+        const owner = room.players.find(p => p.id === room.activeSet.ownerId);
+        if (owner) owner.scoutChips++;
+      }
 
       if (activeCards.length === 0) room.activeSet = null;
       
       room.consecutiveScouts++;
+      
+      // In 2-player, Scout doesn't end the turn
+      const shouldChangeTurn = !is2Player && !player.performingScoutAndShow;
+
       if (checkEndCondition(room)) {
         calculateScores(room);
-      } else {
-        if (!player.performingScoutAndShow) {
-          room.currentTurn = (room.currentTurn + 1) % room.players.length;
-        } else {
-          player.hasPerformedScoutInScoutAndShow = true;
-        }
+      } else if (shouldChangeTurn) {
+        room.currentTurn = (room.currentTurn + 1) % room.players.length;
+      } else if (player.performingScoutAndShow) {
+        player.hasPerformedScoutInScoutAndShow = true;
       }
+      
       io.to(roomId).emit('roomUpdate', room);
     });
 
@@ -183,6 +204,27 @@ function setupSocketHandlers(io) {
       player.performingScoutAndShow = true;
       player.hasPerformedScoutInScoutAndShow = false;
       io.to(roomId).emit('roomUpdate', room);
+    });
+
+    socket.on('endTurn', (roomId) => {
+      const room = rooms.get(roomId);
+      if (!room || room.phase !== 'PLAYING') return;
+      
+      const playerId = socketToPlayerId.get(socket.id);
+      const player = room.players[room.currentTurn];
+      if (!player || player.id !== playerId) return;
+
+      // Only allow ending turn if performing Scout & Show after scouting
+      if (player.performingScoutAndShow && player.hasPerformedScoutInScoutAndShow) {
+        player.hasUsedScoutAndShow = true;
+        player.performingScoutAndShow = false;
+        player.hasPerformedScoutInScoutAndShow = false;
+        
+        room.currentTurn = (room.currentTurn + 1) % room.players.length;
+        io.to(roomId).emit('roomUpdate', room);
+      } else {
+        socket.emit('error', 'You must perform an action.');
+      }
     });
 
     socket.on('flipHand', (roomId) => {
@@ -215,6 +257,29 @@ function setupSocketHandlers(io) {
         room.phase = 'PLAYING';
       }
       io.to(roomId).emit('roomUpdate', room);
+    });
+
+    socket.on('restartGame', (roomId) => {
+      const room = rooms.get(roomId);
+      const playerId = socketToPlayerId.get(socket.id);
+      
+      if (room && room.players[0]?.id === playerId && room.phase === 'SCORING') {
+        room.gameStarted = false;
+        room.phase = 'WAITING';
+        room.activeSet = null;
+        room.roundCount = undefined; // This will trigger re-init in initGame
+        room.players.forEach(p => {
+          p.score = 0;
+          p.hand = [];
+          p.ready = false;
+          p.collectedCards = [];
+          p.scoutChips = 0;
+          p.hasUsedScoutAndShow = false;
+          p.performingScoutAndShow = false;
+          p.hasPerformedScoutInScoutAndShow = false;
+        });
+        io.to(roomId).emit('roomUpdate', room);
+      }
     });
 
     socket.on('disconnect', () => {

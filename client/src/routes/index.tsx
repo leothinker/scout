@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useEffect } from "react"
 import { useForm } from "react-hook-form"
-import * as z from "zod"
+import { z } from "zod"
 import { Appearance } from "@/components/Common/Appearance"
 import { Button } from "@/components/ui/button"
 import {

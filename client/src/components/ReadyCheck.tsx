@@ -34,7 +34,7 @@ export function ReadyCheck({ me, onFlip, onReady }: ReadyCheckProps) {
           onClick={onFlip}
           disabled={me?.ready}
         >
-          FLIP HAND 🔄
+          FLIP HAND
         </Button>
         <Button
           size="lg"

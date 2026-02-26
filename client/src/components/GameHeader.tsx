@@ -18,6 +18,13 @@ export function GameHeader({
     <div className="flex flex-col sm:flex-row justify-between items-center bg-card/80 backdrop-blur-md p-2 sm:p-4 rounded-xl border shadow-sm gap-2 sm:gap-4">
       <div className="flex gap-2 sm:gap-4 items-center h-8 overflow-x-auto no-scrollbar w-full sm:w-auto">
         <div className="text-[10px] sm:text-sm font-medium whitespace-nowrap">
+          Round:{" "}
+          <span className="text-primary font-bold ml-1">
+            {room.roundCount} / {room.totalRounds}
+          </span>
+        </div>
+        <Separator orientation="vertical" className="h-4" />
+        <div className="text-[10px] sm:text-sm font-medium whitespace-nowrap">
           Turn:{" "}
           <Badge variant="secondary" className="ml-1 text-primary font-bold">
             {currentTurnPlayerName}

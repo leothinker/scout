@@ -25,6 +25,7 @@ function GamePage() {
     useScoutAndShow,
     setReady,
     flipHand,
+    endTurn,
   } = useGame()
 
   const [selectedIndices, setSelectedIndices] = useState<number[]>([])
@@ -97,22 +98,11 @@ function GamePage() {
           }
         />
 
-        <div className="flex gap-4">
-          {isMyTurn &&
-            !me?.performingScoutAndShow &&
-            !me?.hasUsedScoutAndShow && (
-              <Button
-                onClick={() => useScoutAndShow(room.id)}
-                variant="outline"
-                className="rounded-full font-bold"
-              >
-                SCOUT & SHOW
-              </Button>
-            )}
+        <div className="flex gap-4 min-h-[40px]">
           {me?.performingScoutAndShow &&
             !me?.hasPerformedScoutInScoutAndShow && (
-              <div className="text-primary font-bold animate-pulse">
-                Select a card to SCOUT first...
+              <div className="text-primary font-bold animate-pulse uppercase tracking-widest text-sm">
+                Select a card from the Active Set to SCOUT first...
               </div>
             )}
         </div>
@@ -120,6 +110,7 @@ function GamePage() {
 
       {me && (
         <Hand
+          room={room}
           me={me}
           isMyTurn={isMyTurn}
           selectedIndices={selectedIndices}
@@ -136,10 +127,14 @@ function GamePage() {
             }
           }}
           onCancelScout={() => setScoutingCard(null)}
+          onScoutAndShow={() => useScoutAndShow(room.id)}
+          onEndTurn={() => endTurn(room.id)}
         />
       )}
 
-      {room.phase === "SCORING" && <ScoringModal players={room.players} />}
+      {room.phase === "SCORING" && (
+        <ScoringModal players={room.players} room={room} />
+      )}
     </div>
   )
 }

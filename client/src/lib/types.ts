@@ -28,4 +28,6 @@ export interface Room {
   gameStarted: boolean
   phase: GamePhase
   currentTurn: number
+  roundCount: number
+  totalRounds: number
 }

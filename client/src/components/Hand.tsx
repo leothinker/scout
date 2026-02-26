@@ -1,11 +1,11 @@
-import type React from "react"
+import React, { useState } from "react"
 import { Card } from "@/components/Common/Card"
 import { Button } from "@/components/ui/button"
-import type { Card as CardType, Player } from "@/lib/types"
-
+import type { Card as CardType, Player, Room } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 interface HandProps {
+  room: Room
   me: Player
   isMyTurn: boolean
   selectedIndices: number[]
@@ -14,9 +14,12 @@ interface HandProps {
   onShow: () => void
   onConfirmScout: (insertIdx: number, flip: boolean) => void
   onCancelScout: () => void
+  onScoutAndShow?: () => void
+  onEndTurn?: () => void
 }
 
 export function Hand({
+  room,
   me,
   isMyTurn,
   selectedIndices,
@@ -25,11 +28,35 @@ export function Hand({
   onShow,
   onConfirmScout,
   onCancelScout,
+  onScoutAndShow,
+  onEndTurn,
 }: HandProps) {
+  const [isFlipping, setIsFlipping] = useState(false)
+
   return (
     <div className="fixed bottom-0 left-0 right-0 pb-6 pt-4 flex flex-col items-center bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none z-40">
       {/* Action Buttons */}
-      <div className="flex gap-2 mb-4 pointer-events-auto">
+      <div className="flex gap-4 mb-4 pointer-events-auto items-center">
+        {selectedIndices.length > 0 && !scoutingCard && (
+          <Button
+            onClick={() => setSelectedIndices([])}
+            variant="ghost"
+            className="rounded-full h-10 w-10 p-0 text-muted-foreground hover:text-destructive"
+          >
+            ✕
+          </Button>
+        )}
+
+        {me.performingScoutAndShow && me.hasPerformedScoutInScoutAndShow && (
+          <Button
+            onClick={onEndTurn}
+            variant="outline"
+            className="px-6 h-12 rounded-full font-black text-xs tracking-widest border-2 border-destructive/20 hover:bg-destructive/10 text-destructive"
+          >
+            END TURN
+          </Button>
+        )}
+        
         <Button
           onClick={onShow}
           disabled={
@@ -41,6 +68,20 @@ export function Hand({
         >
           SHOW
         </Button>
+
+        {isMyTurn &&
+          room.players.length > 2 &&
+          !me.performingScoutAndShow &&
+          !me.hasUsedScoutAndShow &&
+          !scoutingCard && (
+            <Button
+              onClick={onScoutAndShow}
+              variant="outline"
+              className="px-4 sm:px-6 h-10 sm:h-12 rounded-full font-black text-[10px] sm:text-xs tracking-widest border-2 border-primary/20 hover:bg-primary/10"
+            >
+              SCOUT & SHOW
+            </Button>
+          )}
       </div>
 
       {/* Hand Container with horizontal scroll */}
@@ -49,29 +90,49 @@ export function Hand({
           {/* First insertion point */}
           {scoutingCard && (
             <button
-              onClick={() => onConfirmScout(0, false)}
+              onClick={() => onConfirmScout(0, isFlipping)}
               className="absolute left-0 bottom-8 w-8 h-28 sm:h-32 bg-primary/20 hover:bg-primary/40 rounded-full border-2 border-dashed border-primary/60 flex items-center justify-center text-primary font-black text-2xl transition-all z-50 animate-pulse"
             >
               +
             </button>
           )}
 
-          {me.hand.map((card, idx) => (
-            <div
-              key={idx}
-              className="relative group flex items-end"
-              style={{ marginLeft: idx === 0 ? 0 : "-1.5rem" }}
-            >
-              <Card
-                card={card}
-                selected={selectedIndices.includes(idx)}
-                disabled={!!scoutingCard}
-                className={cn(
-                  "transition-all duration-300",
-                  selectedIndices.includes(idx) ? "z-30" : "hover:z-20",
-                )}
-                onClick={() => {
-                  if (!isMyTurn || scoutingCard) return
+          {me.hand.map((card, idx) => {
+            const rotation = (idx - (me.hand.length - 1) / 2) * 2; // Fan rotation
+            const translationY = Math.abs(idx - (me.hand.length - 1) / 2) * 2; // Lift outer cards slightly? Actually, dip them.
+            
+            return (
+              <div
+                key={idx}
+                className="relative group flex items-end"
+                style={{ 
+                  marginLeft: idx === 0 ? 0 : "-1.5rem",
+                  transform: `rotate(${rotation}deg) translateY(${translationY}px)`,
+                  transformOrigin: "bottom center"
+                }}
+              >
+                <Card
+                  card={card}
+                  selected={selectedIndices.includes(idx)}
+                  disabled={!!scoutingCard}
+                  className={cn(
+                    "transition-all duration-300",
+                    selectedIndices.includes(idx) ? "z-30 !-translate-y-20 !rotate-0" : "hover:z-20",
+                  )}
+                  onClick={() => {
+                  if (!isMyTurn) return
+                  // Scout & Show check: Must scout first
+                  if (
+                    me.performingScoutAndShow &&
+                    !me.hasPerformedScoutInScoutAndShow
+                  ) {
+                    import("sonner").then(({ toast }) =>
+                      toast.info("Scout a card first, then you can Show!"),
+                    )
+                    return
+                  }
+                  if (scoutingCard) return
+
                   if (selectedIndices.includes(idx)) {
                     // Only allow removing if it's from the ends of the selection to maintain adjacency
                     const min = Math.min(...selectedIndices)
@@ -84,7 +145,7 @@ export function Hand({
                       setSelectedIndices([])
                     } else {
                       import("sonner").then(({ toast }) =>
-                        toast.error("Only ends"),
+                        toast.error("Can only deselect from the ends"),
                       )
                     }
                   } else {
@@ -99,7 +160,7 @@ export function Hand({
                         )
                       } else {
                         import("sonner").then(({ toast }) =>
-                          toast.error("Must be adjacent"),
+                          toast.error("Cards must be adjacent in your hand"),
                         )
                       }
                     }
@@ -110,16 +171,17 @@ export function Hand({
               {/* Mid/End insertion points for scouting - Positioned between cards */}
               {scoutingCard && (
                 <button
-                  onClick={() => onConfirmScout(idx + 1, false)}
+                  onClick={() => onConfirmScout(idx + 1, isFlipping)}
                   className="absolute right-[-1rem] bottom-8 w-8 h-28 sm:h-32 bg-primary/20 hover:bg-primary/40 rounded-full border-2 border-dashed border-primary/60 flex items-center justify-center text-primary font-black text-2xl transition-all z-50 animate-pulse"
                 >
                   +
                 </button>
               )}
             </div>
-          ))}
-        </div>
+          )
+        })}
       </div>
+    </div>
 
       {/* Insertion Preview */}
       {scoutingCard && (
@@ -128,15 +190,40 @@ export function Hand({
             <div className="text-[10px] font-black text-primary uppercase tracking-widest">
               Inserting:
             </div>
-            <div className="text-sm font-black text-foreground bg-primary/10 px-2 py-1 rounded">
-              {scoutingCard.card.top} / {scoutingCard.card.bottom}
-            </div>
-            <button
-              className="text-[10px] uppercase font-black text-destructive hover:scale-110 transition-transform ml-2"
-              onClick={onCancelScout}
+            <div
+              className="relative group"
+              onClick={() => setIsFlipping(!isFlipping)}
             >
-              Cancel
-            </button>
+              <Card
+                card={{
+                  ...scoutingCard.card,
+                  top: isFlipping
+                    ? scoutingCard.card.bottom
+                    : scoutingCard.card.top,
+                  bottom: isFlipping
+                    ? scoutingCard.card.top
+                    : scoutingCard.card.bottom,
+                }}
+                className="w-12 h-16 sm:w-14 sm:h-20 border-primary animate-in fade-in zoom-in"
+              />
+              <div className="absolute -top-2 -right-2 bg-primary text-white text-[8px] p-1 rounded-full shadow-lg">
+                🔄
+              </div>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] text-muted-foreground font-bold">
+                Click card to FLIP
+              </span>
+              <button
+                className="text-[10px] uppercase font-black text-destructive hover:scale-110 transition-transform text-left"
+                onClick={() => {
+                  onCancelScout()
+                  setIsFlipping(false)
+                }}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

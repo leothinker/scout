@@ -28,6 +28,8 @@ interface GameContextType {
   useScoutAndShow: (roomId: string) => void
   setReady: (roomId: string) => void
   flipHand: (roomId: string) => void
+  restartGame: (roomId: string) => void
+  endTurn: (roomId: string) => void
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
@@ -102,6 +104,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     socket.emit("flipHand", roomId)
   }, [])
 
+  const restartGame = useCallback((roomId: string) => {
+    socket.emit("restartGame", roomId)
+  }, [])
+
+  const endTurn = useCallback((roomId: string) => {
+    socket.emit("endTurn", roomId)
+  }, [])
+
   return (
     <GameContext.Provider
       value={{
@@ -115,6 +125,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         useScoutAndShow,
         setReady,
         flipHand,
+        restartGame,
+        endTurn,
       }}
     >
       {children}
