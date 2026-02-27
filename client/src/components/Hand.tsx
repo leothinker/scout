@@ -1,4 +1,5 @@
-import React, { useState } from "react"
+import type React from "react"
+import { useState } from "react"
 import { Card } from "@/components/Common/Card"
 import { Button } from "@/components/ui/button"
 import type { Card as CardType, Player, Room } from "@/lib/types"
@@ -56,7 +57,7 @@ export function Hand({
             END TURN
           </Button>
         )}
-        
+
         <Button
           onClick={onShow}
           disabled={
@@ -98,17 +99,17 @@ export function Hand({
           )}
 
           {me.hand.map((card, idx) => {
-            const rotation = (idx - (me.hand.length - 1) / 2) * 2; // Fan rotation
-            const translationY = Math.abs(idx - (me.hand.length - 1) / 2) * 2; // Lift outer cards slightly? Actually, dip them.
-            
+            const rotation = (idx - (me.hand.length - 1) / 2) * 2 // Fan rotation
+            const translationY = Math.abs(idx - (me.hand.length - 1) / 2) * 2 // Lift outer cards slightly? Actually, dip them.
+
             return (
               <div
                 key={idx}
                 className="relative group flex items-end"
-                style={{ 
+                style={{
                   marginLeft: idx === 0 ? 0 : "-1.5rem",
                   transform: `rotate(${rotation}deg) translateY(${translationY}px)`,
-                  transformOrigin: "bottom center"
+                  transformOrigin: "bottom center",
                 }}
               >
                 <Card
@@ -117,71 +118,73 @@ export function Hand({
                   disabled={!!scoutingCard}
                   className={cn(
                     "transition-all duration-300",
-                    selectedIndices.includes(idx) ? "z-30 !-translate-y-20 !rotate-0" : "hover:z-20",
+                    selectedIndices.includes(idx)
+                      ? "z-30 !-translate-y-20 !rotate-0"
+                      : "hover:z-20",
                   )}
                   onClick={() => {
-                  if (!isMyTurn) return
-                  // Scout & Show check: Must scout first
-                  if (
-                    me.performingScoutAndShow &&
-                    !me.hasPerformedScoutInScoutAndShow
-                  ) {
-                    import("sonner").then(({ toast }) =>
-                      toast.info("Scout a card first, then you can Show!"),
-                    )
-                    return
-                  }
-                  if (scoutingCard) return
-
-                  if (selectedIndices.includes(idx)) {
-                    // Only allow removing if it's from the ends of the selection to maintain adjacency
-                    const min = Math.min(...selectedIndices)
-                    const max = Math.max(...selectedIndices)
-                    if (idx === min || idx === max) {
-                      setSelectedIndices(
-                        selectedIndices.filter((i) => i !== idx),
-                      )
-                    } else if (selectedIndices.length === 1) {
-                      setSelectedIndices([])
-                    } else {
+                    if (!isMyTurn) return
+                    // Scout & Show check: Must scout first
+                    if (
+                      me.performingScoutAndShow &&
+                      !me.hasPerformedScoutInScoutAndShow
+                    ) {
                       import("sonner").then(({ toast }) =>
-                        toast.error("Can only deselect from the ends"),
+                        toast.info("Scout a card first, then you can Show!"),
                       )
+                      return
                     }
-                  } else {
-                    if (selectedIndices.length === 0) {
-                      setSelectedIndices([idx])
-                    } else {
+                    if (scoutingCard) return
+
+                    if (selectedIndices.includes(idx)) {
+                      // Only allow removing if it's from the ends of the selection to maintain adjacency
                       const min = Math.min(...selectedIndices)
                       const max = Math.max(...selectedIndices)
-                      if (idx === min - 1 || idx === max + 1) {
+                      if (idx === min || idx === max) {
                         setSelectedIndices(
-                          [...selectedIndices, idx].sort((a, b) => a - b),
+                          selectedIndices.filter((i) => i !== idx),
                         )
+                      } else if (selectedIndices.length === 1) {
+                        setSelectedIndices([])
                       } else {
                         import("sonner").then(({ toast }) =>
-                          toast.error("Cards must be adjacent in your hand"),
+                          toast.error("Can only deselect from the ends"),
                         )
                       }
+                    } else {
+                      if (selectedIndices.length === 0) {
+                        setSelectedIndices([idx])
+                      } else {
+                        const min = Math.min(...selectedIndices)
+                        const max = Math.max(...selectedIndices)
+                        if (idx === min - 1 || idx === max + 1) {
+                          setSelectedIndices(
+                            [...selectedIndices, idx].sort((a, b) => a - b),
+                          )
+                        } else {
+                          import("sonner").then(({ toast }) =>
+                            toast.error("Cards must be adjacent in your hand"),
+                          )
+                        }
+                      }
                     }
-                  }
-                }}
-              />
+                  }}
+                />
 
-              {/* Mid/End insertion points for scouting - Positioned between cards */}
-              {scoutingCard && (
-                <button
-                  onClick={() => onConfirmScout(idx + 1, isFlipping)}
-                  className="absolute right-[-1rem] bottom-8 w-8 h-28 sm:h-32 bg-primary/20 hover:bg-primary/40 rounded-full border-2 border-dashed border-primary/60 flex items-center justify-center text-primary font-black text-2xl transition-all z-50 animate-pulse"
-                >
-                  +
-                </button>
-              )}
-            </div>
-          )
-        })}
+                {/* Mid/End insertion points for scouting - Positioned between cards */}
+                {scoutingCard && (
+                  <button
+                    onClick={() => onConfirmScout(idx + 1, isFlipping)}
+                    className="absolute right-[-1rem] bottom-8 w-8 h-28 sm:h-32 bg-primary/20 hover:bg-primary/40 rounded-full border-2 border-dashed border-primary/60 flex items-center justify-center text-primary font-black text-2xl transition-all z-50 animate-pulse"
+                  >
+                    +
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
       </div>
-    </div>
 
       {/* Insertion Preview */}
       {scoutingCard && (

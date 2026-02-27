@@ -1,132 +1,85 @@
+import { LobbyClient } from "boardgame.io/client"
+import { SocketIO } from "boardgame.io/multiplayer"
+import { Client } from "boardgame.io/react"
 import type React from "react"
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from "react"
-import { io, type Socket } from "socket.io-client"
-import { toast } from "sonner"
-import type { Room } from "@/lib/types"
+import { createContext, useContext, useEffect, useState } from "react"
+import { ScoutGame } from "@/shared/game"
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3001"
+const lobbyClient = new LobbyClient({ server: SOCKET_URL })
 
 interface GameContextType {
-  room: Room | null
-  error: string | null
-  socketId: string | undefined // This is the persistent playerId
-  joinRoom: (roomId: string, playerName: string) => void
-  startGame: (roomId: string) => void
-  showCards: (roomId: string, cardIndices: number[]) => void
-  scoutCard: (
-    roomId: string,
-    cardIndex: number,
-    insertIndex: number,
-    flip: boolean,
-  ) => void
-  useScoutAndShow: (roomId: string) => void
-  setReady: (roomId: string) => void
-  flipHand: (roomId: string) => void
-  restartGame: (roomId: string) => void
-  endTurn: (roomId: string) => void
+  G: any
+  ctx: any
+  moves: any
+  playerID: string | null
+  isActive: boolean
+  isConnected: boolean
+  setPlayerID: (id: string | null) => void
+  setMatchID: (id: string | null) => void
+  matchID: string | null
+  lobbyClient: LobbyClient
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
 
-// 单例 Socket 连接
-const socket: Socket = io(SOCKET_URL)
-
-// 生成或获取持久化 ID
-const getPersistentId = () => {
-  let id = localStorage.getItem("scout_player_id")
-  if (!id) {
-    id = `p_${Math.random().toString(36).substring(2, 11)}`
-    localStorage.setItem("scout_player_id", id)
-  }
-  return id
-}
-
-const playerId = getPersistentId()
-
 export function GameProvider({ children }: { children: React.ReactNode }) {
-  const [room, setRoom] = useState<Room | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [playerID, setPlayerID] = useState<string | null>(
+    localStorage.getItem("scout_player_id"),
+  )
+  const [matchID, setMatchID] = useState<string | null>(
+    localStorage.getItem("scout_match_id"),
+  )
+  const [gameState, setGameState] = useState<any>(null)
+  const [bgioClient, setBgioClient] = useState<any>(null)
 
   useEffect(() => {
-    // 连接时告知服务器我们的持久化 ID
-    socket.emit("identify", { playerId })
+    if (playerID) localStorage.setItem("scout_player_id", playerID)
+    else localStorage.removeItem("scout_player_id")
+  }, [playerID])
 
-    socket.on("roomUpdate", (updatedRoom: Room) => {
-      setRoom(updatedRoom)
-      setError(null)
-    })
+  useEffect(() => {
+    if (matchID) localStorage.setItem("scout_match_id", matchID)
+    else localStorage.removeItem("scout_match_id")
+  }, [matchID])
 
-    socket.on("error", (msg: string) => {
-      setError(msg)
-      toast.error(msg)
-    })
+  useEffect(() => {
+    if (matchID && playerID !== null) {
+      const client = Client({
+        game: ScoutGame,
+        multiplayer: SocketIO({ server: SOCKET_URL }),
+        matchID,
+        playerID,
+      })
+      client.start()
+      setBgioClient(client)
 
-    return () => {
-      socket.off("roomUpdate")
-      socket.off("error")
+      const unsubscribe = client.subscribe((state) => {
+        setGameState(state)
+      })
+
+      return () => {
+        unsubscribe()
+        client.stop()
+      }
     }
-  }, [])
-
-  const joinRoom = useCallback((roomId: string, playerName: string) => {
-    socket.emit("joinRoom", { roomId, playerName, playerId })
-  }, [])
-
-  const startGame = useCallback((roomId: string) => {
-    socket.emit("startGame", roomId)
-  }, [])
-
-  const showCards = useCallback((roomId: string, cardIndices: number[]) => {
-    socket.emit("show", { roomId, cardIndices })
-  }, [])
-
-  const scoutCard = useCallback(
-    (roomId: string, cardIndex: number, insertIndex: number, flip: boolean) => {
-      socket.emit("scout", { roomId, cardIndex, insertIndex, flip })
-    },
-    [],
-  )
-
-  const useScoutAndShow = useCallback((roomId: string) => {
-    socket.emit("scoutAndShow", roomId)
-  }, [])
-
-  const setReady = useCallback((roomId: string) => {
-    socket.emit("setReady", roomId)
-  }, [])
-
-  const flipHand = useCallback((roomId: string) => {
-    socket.emit("flipHand", roomId)
-  }, [])
-
-  const restartGame = useCallback((roomId: string) => {
-    socket.emit("restartGame", roomId)
-  }, [])
-
-  const endTurn = useCallback((roomId: string) => {
-    socket.emit("endTurn", roomId)
-  }, [])
+    setGameState(null)
+    setBgioClient(null)
+  }, [matchID, playerID])
 
   return (
     <GameContext.Provider
       value={{
-        room,
-        error,
-        socketId: playerId,
-        joinRoom,
-        startGame,
-        showCards,
-        scoutCard,
-        useScoutAndShow,
-        setReady,
-        flipHand,
-        restartGame,
-        endTurn,
+        G: gameState?.G,
+        ctx: gameState?.ctx,
+        moves: bgioClient?.moves,
+        playerID,
+        isActive: gameState?.isActive,
+        isConnected: gameState?.isConnected,
+        setPlayerID,
+        setMatchID,
+        matchID,
+        lobbyClient,
       }}
     >
       {children}

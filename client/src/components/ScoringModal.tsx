@@ -15,13 +15,15 @@ interface ScoringModalProps {
 }
 
 export function ScoringModal({ players, room }: ScoringModalProps) {
-  const { restartGame, startGame, socketId } = useGame()
-  const isHost = room.players[0]?.id === socketId
+  const { moves, playerID } = useGame()
+  const isHost = playerID === "0"
   const isGameOver = room.roundCount >= room.totalRounds
 
   // For final results, sort by total score. For mid-round, sort by current round score.
-  const sortedPlayers = [...players].sort(
-    (a, b) => isGameOver ? (b.score || 0) - (a.score || 0) : (b.finalScore || 0) - (a.finalScore || 0),
+  const sortedPlayers = [...players].sort((a, b) =>
+    isGameOver
+      ? (b.score || 0) - (a.score || 0)
+      : (b.finalScore || 0) - (a.finalScore || 0),
   )
 
   return (
@@ -47,7 +49,9 @@ export function ScoringModal({ players, room }: ScoringModalProps) {
                 <span className="text-muted-foreground font-black text-xs">
                   #{i + 1}
                 </span>
-                <span className="font-bold text-lg">{p.name}</span>
+                <span className="font-bold text-lg">
+                  {p.name || `Player ${p.id}`}
+                </span>
               </div>
               <div className="flex flex-col items-end">
                 <span className="text-3xl font-black text-primary">
@@ -66,7 +70,9 @@ export function ScoringModal({ players, room }: ScoringModalProps) {
           {isHost ? (
             <Button
               className="w-full py-6 text-xl font-black tracking-widest uppercase rounded-2xl h-14"
-              onClick={() => isGameOver ? restartGame(room.id) : startGame(room.id)}
+              onClick={() =>
+                isGameOver ? moves.restartGame() : moves.nextRound()
+              }
             >
               {isGameOver ? "NEW GAME" : "NEXT ROUND"}
             </Button>
