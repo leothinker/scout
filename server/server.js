@@ -1,9 +1,9 @@
-const { Server, Origins } = require('boardgame.io/server');
+const { Server } = require('boardgame.io/server');
 const { ScoutGame } = require('./shared/game');
 
 const server = Server({
   games: [ScoutGame],
-  origins: [Origins.LOCALHOST],
+  origins: true,
 });
 
 const PORT = process.env.PORT || 3001;

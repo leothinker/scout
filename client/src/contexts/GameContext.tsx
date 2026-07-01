@@ -1,6 +1,5 @@
-import { LobbyClient } from "boardgame.io/client"
+import { LobbyClient, Client } from "boardgame.io/client"
 import { SocketIO } from "boardgame.io/multiplayer"
-import { Client } from "boardgame.io/react"
 import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
 import { ScoutGame } from "@/shared/game"

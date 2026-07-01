@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { useGame } from "@/contexts/GameContext"
 
 const joinSchema = z.object({
-  matchID: z.string().min(1, "Match ID is required"),
+  matchID: z.string().optional(),
   playerName: z.string().min(2, "Name must be at least 2 characters"),
   numPlayers: z.string().optional(),
 })

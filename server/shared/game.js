@@ -5,7 +5,7 @@ const ScoutGame = {
   name: 'scout',
 
   setup: (ctx) => {
-    const playerCount = ctx.numPlayers;
+    const playerCount = ctx.numPlayers || 3;
     const totalRounds = playerCount;
     
     return {
@@ -37,9 +37,10 @@ const ScoutGame = {
       start: true,
       onBegin: (G, ctx) => {
         G.roundCount++;
-        const playerCount = ctx.numPlayers;
+        const playerCount = ctx?.numPlayers ?? (G?.players ? G.players.length : 3);
         
         let deck;
+        if (!G.players || G.players.length === 0) { return; }
         if (playerCount === 2) {
           if (G.roundCount % 2 === 1) {
             G.fullDeck = createDeck(playerCount);
